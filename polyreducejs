@@ -1,0 +1,17 @@
+
+Array.prototype.myreduce=function(callback,intialvalue){
+    let accumalator = intialvalue!==null ? intialvalue:this[0]
+    let startindex = intialvalue!==null ? 0 : 1
+
+    for(let i=startindex;i<this.length;i++){
+        accumalator=callback.call(undefined,accumalator,this[i],i,this)
+    }
+    return accumalator
+}
+
+
+let arr=[1,2,3,4,5,6]
+
+let res=arr.myreduce((acc,num)=>acc+num,0)
+
+console.log(res)
