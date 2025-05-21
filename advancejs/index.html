@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Search Utility</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .search-container { position: relative; width: 300px; }
+    input { width: 100%; padding: 8px; font-size: 16px; }
+    .dropdown { position: absolute; top: 40px; width: 100%; border: 1px solid #ccc; background: #fff; max-height: 200px; overflow-y: auto; }
+    .dropdown-item { padding: 8px; cursor: pointer; }
+    .dropdown-item:hover { background-color: #f0f0f0; }
+    .highlight { background: yellow; }
+  </style>
+</head>
+<body>
+
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search users...">
+    <div id="dropdown" class="dropdown"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
