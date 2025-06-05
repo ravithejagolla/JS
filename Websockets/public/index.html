@@ -1,0 +1,86 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real-time Room</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 150px; margin-top: 10px; }
+    #messages div { margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h2>Join Room</h2>
+  <input id="roomInput" placeholder="Room ID" />
+  <button onclick="join()">Join</button>
+
+  <div id="roomSection" style="display:none;">
+    <h3>Room: <span id="roomIdDisplay"></span></h3>
+    <p>Users online: <span id="userCount">0</span></p>
+
+    <div>
+      <h4>Chat</h4>
+      <div id="messages"></div>
+      <input id="msgInput" placeholder="Type message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div>
+      <h4>Shared Document</h4>
+      <textarea id="docArea"></textarea>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let roomId = '';
+
+    function join() {
+      roomId = document.getElementById('roomInput').value.trim();
+      if (!roomId) return alert("Enter a room ID");
+
+      document.getElementById('roomIdDisplay').textContent = roomId;
+      document.getElementById('roomSection').style.display = 'block';
+
+      socket.emit('joinRoom', roomId);
+    }
+
+    socket.on('userCount', count => {
+      document.getElementById('userCount').textContent = count;
+    });
+    socket.on('chatHistory', messages => {
+      messages.forEach(msg => addMessage(msg.text));
+    });
+    socket.on('newMessage', msg => {
+      addMessage(msg.text);
+    });
+    socket.on('userJoined', msg => addMessage(msg));
+    socket.on('userLeft', msg => addMessage(msg));
+    function addMessage(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      document.getElementById('messages').appendChild(div);
+    }
+    function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const msg = input.value.trim();
+      if (msg) {
+        socket.emit('sendMessage', msg);
+        input.value = '';
+      }
+    }
+    const docArea = document.getElementById('docArea');
+    docArea.addEventListener('input', () => {
+      socket.emit('editDoc', docArea.value);
+    });
+    socket.on('docUpdate', content => {
+      if (document.activeElement !== docArea) {
+        docArea.value = content;
+      }
+    });
+  </script>
+</body>
+</html>
