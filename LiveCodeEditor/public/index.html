@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Collaborative Code Editor</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      background: linear-gradient(to bottom right, #f0f4f8, #dfe9f3);
+      color: #333;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 200px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #editor {
+      width: 100%;
+      height: 300px;
+      margin-top: 10px;
+      background-color: #1e1e1e;
+      color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    #users {
+      margin-top: 15px;
+      font-weight: bold;
+      background-color: #ffffffcc;
+      padding: 8px 12px;
+      border-left: 4px solid #007bff;
+      border-radius: 4px;
+    }
+
+    #roomDisplay {
+      display: inline-block;
+      margin-left: 10px;
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h2>🔗 Join a Room</h2>
+  <input type="text" id="username" placeholder="Your name" />
+  <input type="text" id="room" placeholder="Room ID" />
+  <button onclick="joinRoom()">Join</button>
+  <span id="roomDisplay"></span>
+
+  <h2>📝 Code Editor</h2>
+  <textarea id="editor" placeholder="Write your code..."></textarea>
+
+  <div id="users">👥 Users: </div>
+
+  <script>
+    let socket
+    let currentRoom = ''
+    let currentUser = ''
+    const editor = document.getElementById('editor')
+    const usersDiv = document.getElementById('users')
+    const roomDisplay = document.getElementById('roomDisplay')
+    let isUpdating = false
+
+    function setupSocketListeners() {
+      socket.on('SYNC_CODE', (code) => {
+        isUpdating = true
+        editor.value = code
+        isUpdating = false
+      })
+
+      socket.on('CODE_CHANGE', (data) => {
+        isUpdating = true
+        editor.value = data.code
+        isUpdating = false
+      })
+
+      socket.on('CURSOR_MOVE', (data) => {
+        console.log(`User ${data.from} moved cursor to`, data.position)
+      })
+
+      socket.on('USER_LIST', (userList) => {
+        usersDiv.textContent = `👥 Users: ${userList.join(', ')}`
+      })
+    }
+
+    function joinRoom() {
+      const roomInput = document.getElementById('room')
+      const usernameInput = document.getElementById('username')
+
+      const roomValue = roomInput.value.trim()
+      const usernameValue = usernameInput.value.trim()
+
+      if (!usernameValue || !roomValue) {
+        alert('Please enter both your name and a room ID.')
+        return
+      }
+
+      currentUser = usernameValue
+      currentRoom = roomValue
+      roomDisplay.textContent = `Room: ${currentRoom} | You: ${currentUser}`
+
+      roomInput.value = ''
+      usernameInput.value = ''
+
+      if (socket) socket.disconnect()
+
+      socket = io('http://localhost:3000', {
+        reconnectionAttempts: 5,
+        transports: ['websocket']
+      })
+
+      socket.on('connect', () => {
+        socket.emit('JOIN_ROOM', { room: currentRoom, user: currentUser })
+        setupSocketListeners()
+        console.log('Connected to server with ID:', socket.id)
+      })
+
+      editor.addEventListener('input', () => {
+        if (!isUpdating) {
+          socket.emit('CODE_CHANGE', editor.value)
+        }
+      })
+
+      editor.addEventListener('mouseup', () => {
+        const cursorPos = editor.selectionStart
+        socket.emit('CURSOR_MOVE', {
+          room: currentRoom,
+          from: currentUser,
+          position: cursorPos,
+        })
+      })
+    }
+  </script>
+</body>
+</html>
